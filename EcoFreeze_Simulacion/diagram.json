@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "author": "Inmer-Final-Force",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "wokwi-esp32-devkit-v1",
+      "id": "esp",
+      "top": 0,
+      "left": 0,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-dht22",
+      "id": "dht",
+      "top": -150,
+      "left": 60,
+      "attrs": {}
+    }
+  ],
+  "connections": [
+    [ "esp:GND.1", "dht:GND", "black", [ "v0" ] ],
+    [ "esp:3V3", "dht:VCC", "red", [ "v0" ] ],
+    [ "esp:D15", "dht:SDA", "green", [ "v0" ] ]
+  ]
+}

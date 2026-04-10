@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoFreeze IoT Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .card { box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        /* Animación para la alerta de peligro */
+        @keyframes parpadeo {
+            0% { background-color: #dc3545; color: white; }
+            50% { background-color: #ffc107; color: black; }
+            100% { background-color: #dc3545; color: white; }
+        }
+        .alerta-peligro { animation: parpadeo 1.5s infinite; font-weight: bold;}
+    </style>
+</head>
+<body>
+
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-12 text-center mb-4">
+            <h1 class="display-4 text-primary">❄️ EcoFreeze IoT Dashboard</h1>
+            <p class="lead">Monitoreo en Tiempo Real de Cámaras Frías</p>
+        </div>
+    </div>
+
+    <div id="alertaCritica" class="alert alerta-peligro text-center d-none" role="alert">
+        ⚠️ ¡ALERTA CRÍTICA! TEMPERATURA POR ENCIMA DE -15°C. RIESGO DE MERMA DETECTADO. ⚠️
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Últimas Lecturas</h5>
+                    <span class="badge bg-success" id="estadoConexion">Conectado / Actualizando...</span>
+                </div>
+                <div class="card-body">
+                    <table class="table table-hover table-striped text-center">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Fecha y Hora</th>
+                                <th>Temperatura (°C)</th>
+                                <th>Humedad (%)</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaDatos">
+                            <tr><td colspan="4">Cargando datos...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Función que pide los datos a Django
+
+function actualizarDashboard() {
+        fetch('/api/datos/?t=' + new Date().getTime())
+            .then(response => response.json())
+            .then(data => {
+                const tbody = document.getElementById('tablaDatos');
+                const alerta = document.getElementById('alertaCritica');
+                tbody.innerHTML = ''; 
+                
+                if (data.datos.length > 0) {
+                    // 1. Tomamos el primer registro (el más reciente) para la alerta
+                    const ultimoRegistro = data.datos[0];
+                    
+                    if (ultimoRegistro.temperatura > -15.0) {
+                        alerta.classList.remove('d-none'); // Mostrar alerta
+                    } else {
+                        alerta.classList.add('d-none');    // Quitar alerta de inmediato
+                    }
+
+                    // 2. Llenamos la tabla redondeando los números
+                    data.datos.forEach(registro => {
+                        let estadoHtml = '<span class="badge bg-success">Óptimo</span>';
+                        let tempRedondeada = parseFloat(registro.temperatura).toFixed(2);
+                        let humRedondeada = parseFloat(registro.humedad).toFixed(2);
+
+                        if (registro.temperatura > -15.0) {
+                            estadoHtml = '<span class="badge bg-danger">Peligro</span>';
+                        }
+
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${registro.fecha}</td>
+                            <td class="${registro.temperatura > -15.0 ? 'text-danger fw-bold' : ''}">${tempRedondeada} °C</td>
+                            <td>${humRedondeada} %</td>
+                            <td>${estadoHtml}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            })
+            .catch(error => console.error("Error:", error));
+    }
+
+    // Ejecutar la función por primera vez de inmediato
+    actualizarDashboard();
+
+    // Repetir la función cada 5 segundos (5000 milisegundos)
+    setInterval(actualizarDashboard, 5000);
+</script>
+
+</body>
+</html>
